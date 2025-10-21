@@ -1,6 +1,6 @@
 {
   "name": "@hobeeliu/ccline-yescc-linux-x64",
-  "version": "0.0.0",
+  "version": "1.0.11",
   "description": "Linux x64 binary for ccline-yescc",
   "files": ["ccline-yescc"],
   "os": ["linux"],
