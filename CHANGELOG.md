@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.11] - 2025-01-21
+
+### Fixed
+- **Quota Display Logic**: Fixed quota segment to display "used/total" instead of "used/remaining"
+  - Primary display now shows: Daily spent / Total limit (daily spent + remaining balance)
+  - Secondary display remains: Weekly spent / Weekly limit
+  - Example: `$7.89/$85.00 Week: $81.97/$150`
+
 ## [1.0.4] - 2025-08-28
 
 ### Added

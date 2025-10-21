@@ -1,6 +1,6 @@
 {
   "name": "@hobeeliu/ccline-yescc",
-  "version": "0.0.0",
+  "version": "1.0.11",
   "description": "ccline-yescc - High-performance Claude Code StatusLine tool with API quota monitoring",
   "bin": {
     "ccline-yescc": "./bin/ccline-yescc.js"
@@ -9,11 +9,11 @@
     "postinstall": "node scripts/postinstall.js"
   },
   "optionalDependencies": {
-    "@hobeeliu/ccline-yescc-darwin-x64": "0.0.0",
-    "@hobeeliu/ccline-yescc-darwin-arm64": "0.0.0",
-    "@hobeeliu/ccline-yescc-linux-x64": "0.0.0",
-    "@hobeeliu/ccline-yescc-linux-x64-musl": "0.0.0",
-    "@hobeeliu/ccline-yescc-win32-x64": "0.0.0"
+    "@hobeeliu/ccline-yescc-darwin-x64": "1.0.11",
+    "@hobeeliu/ccline-yescc-darwin-arm64": "1.0.11",
+    "@hobeeliu/ccline-yescc-linux-x64": "1.0.11",
+    "@hobeeliu/ccline-yescc-linux-x64-musl": "1.0.11",
+    "@hobeeliu/ccline-yescc-win32-x64": "1.0.11"
   },
   "repository": {
     "type": "git",

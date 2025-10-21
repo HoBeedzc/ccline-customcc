@@ -248,8 +248,9 @@ impl QuotaSegment {
         None
     }
 
-    fn format_daily_used_total(&self, daily_used: f64, total: f64) -> String {
-        format!("${:.2}/${:.2}", daily_used, total)
+    fn format_daily_used_total(&self, daily_used: f64, remaining: f64) -> String {
+        let total_limit = daily_used + remaining;
+        format!("${:.2}/${:.2}", daily_used, total_limit)
     }
 
     fn format_week_limit(&self, weekly_used: f64, limit: f64) -> String {
