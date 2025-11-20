@@ -8,7 +8,16 @@ use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
-// API 响应结构
+// API 通用包装响应结构
+#[derive(Debug, Deserialize)]
+struct ApiWrapper<T> {
+    code: i32,
+    msg: String,
+    ok: bool,
+    data: T,
+}
+
+// Usage API 响应数据结构
 #[derive(Debug, Deserialize)]
 struct C88ApiResponse {
     #[serde(rename = "creditLimit")]
@@ -21,7 +30,7 @@ struct C88ApiResponse {
     subscription_id: Option<u32>,
 }
 
-// 订阅 API 响应结构
+// 订阅信息结构
 #[derive(Debug, Deserialize)]
 struct SubscriptionResponse {
     id: u32,
@@ -109,7 +118,11 @@ impl SmartEndpointDetector {
                         );
                     }
 
-                    response.into_json::<C88ApiResponse>().ok()
+                    // 解析包装后的响应
+                    response
+                        .into_json::<ApiWrapper<C88ApiResponse>>()
+                        .ok()
+                        .map(|wrapper| wrapper.data)
                 } else {
                     if debug {
                         eprintln!(
@@ -236,9 +249,9 @@ impl QuotaSegment {
 
         match result {
             Ok(response) if response.status() == 200 => {
-                if let Ok(subscriptions) = response.into_json::<Vec<SubscriptionResponse>>() {
-                    // 查找匹配的订阅ID
-                    subscriptions.into_iter().find(|sub| sub.id == subscription_id)
+                if let Ok(wrapper) = response.into_json::<ApiWrapper<Vec<SubscriptionResponse>>>() {
+                    // 从包装结构中提取数据并查找匹配的订阅ID
+                    wrapper.data.into_iter().find(|sub| sub.id == subscription_id)
                 } else {
                     None
                 }
