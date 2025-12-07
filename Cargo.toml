@@ -1,6 +1,6 @@
 [package]
 name = "ccometixline-88cc"
-version = "1.0.12"
+version = "1.0.13"
 edition = "2021"
 description = "CCometixLine (ccline) - High-performance Claude Code StatusLine tool written in Rust (88Code version)"
 authors = ["Hobee Liu"]

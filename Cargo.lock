@@ -160,7 +160,7 @@ dependencies = [
 
 [[package]]
 name = "ccometixline-88cc"
-version = "1.0.12"
+version = "1.0.13"
 dependencies = [
  "ansi-to-tui",
  "ansi_term",

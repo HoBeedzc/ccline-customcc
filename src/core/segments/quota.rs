@@ -90,16 +90,19 @@ impl SmartEndpointDetector {
         hasher.finish()
     }
 
-    fn try_endpoint(&self, endpoint: &EndpointConfig, api_key: &str) -> Option<C88ApiResponse> {
+    fn try_endpoint(&self, endpoint: &EndpointConfig, api_key: &str, model: &str) -> Option<C88ApiResponse> {
         let debug = env::var("C88_DEBUG").is_ok();
 
+        // 构建带 model 参数的 URL
+        let url_with_model = format!("{}?model={}", endpoint.url, model);
+
         if debug {
-            eprintln!("[DEBUG] Trying endpoint: {}", endpoint.url);
+            eprintln!("[DEBUG] Trying endpoint: {}", url_with_model);
         }
 
         let start_time = SystemTime::now();
         let bearer_token = format!("Bearer {}", api_key);
-        let result = ureq::post(&endpoint.url)
+        let result = ureq::post(&url_with_model)
             .set("accept", "*/*")
             .set("content-type", "application/json")
             .set("Authorization", &bearer_token)
@@ -143,11 +146,11 @@ impl SmartEndpointDetector {
         }
     }
 
-    fn detect_endpoint(&mut self, api_key: &str) -> Option<(String, C88ApiResponse)> {
+    fn detect_endpoint(&mut self, api_key: &str, model: &str) -> Option<(String, C88ApiResponse)> {
         // 尝试所有端点
         let endpoints_clone = self.endpoints.clone();
         for endpoint in &endpoints_clone {
-            if let Some(response) = self.try_endpoint(endpoint, api_key) {
+            if let Some(response) = self.try_endpoint(endpoint, api_key, model) {
                 return Some((endpoint.url.clone(), response));
             }
         }
@@ -155,9 +158,9 @@ impl SmartEndpointDetector {
         None
     }
 
-    fn detect_endpoint_static(api_key: &str) -> Option<(String, C88ApiResponse)> {
+    fn detect_endpoint_static(api_key: &str, model: &str) -> Option<(String, C88ApiResponse)> {
         let mut detector = SmartEndpointDetector::new();
-        detector.detect_endpoint(api_key)
+        detector.detect_endpoint(api_key, model)
     }
 }
 
@@ -224,6 +227,32 @@ impl QuotaSegment {
         None
     }
 
+    fn load_model(&self) -> String {
+        // 优先级：环境变量 > settings.json > 默认值
+
+        // 1. 环境变量 ANTHROPIC_MODEL
+        if let Ok(model) = env::var("ANTHROPIC_MODEL") {
+            return model;
+        }
+
+        // 2. settings.json（顶层 model 字段）
+        if let Some(home) = dirs::home_dir() {
+            let settings_path = home.join(".claude").join("settings.json");
+            if let Ok(content) = fs::read_to_string(settings_path) {
+                if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(model) = settings.get("model") {
+                        if let Some(model_str) = model.as_str() {
+                            return model_str.to_string();
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. 默认值：使用 claude-sonnet-4-5-20251022
+        "claude-sonnet-4-5-20251022".to_string()
+    }
+
     fn format_quota(&self, subscription_name: Option<&str>, used: f64, total: f64) -> String {
         if let Some(name) = subscription_name {
             format!("{} ${:.2}/${:.2}", name, used, total)
@@ -236,11 +265,11 @@ impl QuotaSegment {
         response.credit_limit - response.current_credits
     }
 
-    fn fetch_subscription_info(&self, api_key: &str, subscription_id: u32) -> Option<SubscriptionResponse> {
-        let url = "https://www.88code.org/api/subscription";
+    fn fetch_subscription_info(&self, api_key: &str, subscription_id: u32, model: &str) -> Option<SubscriptionResponse> {
+        let url = format!("https://www.88code.org/api/subscription?model={}", model);
         let bearer_token = format!("Bearer {}", api_key);
 
-        let result = ureq::post(url)
+        let result = ureq::post(&url)
             .set("accept", "*/*")
             .set("content-type", "application/json")
             .set("Authorization", &bearer_token)
@@ -372,6 +401,7 @@ impl Segment for QuotaSegment {
         #[cfg(feature = "quota")]
         {
             let api_key = self.load_api_key()?;
+            let model = self.load_model();
 
             // 加载配置获取auto_reset_enabled选项
             let auto_reset_enabled = if let Ok(config) = crate::config::Config::load() {
@@ -386,9 +416,9 @@ impl Segment for QuotaSegment {
                 false
             };
 
-            // 使用静态方法进行端点检测
+            // 使用静态方法进行端点检测，传递 model 参数
             if let Some((endpoint_url, response)) =
-                SmartEndpointDetector::detect_endpoint_static(&api_key)
+                SmartEndpointDetector::detect_endpoint_static(&api_key, &model)
             {
                 let used = self.calculate_used(&response);
                 let total = response.credit_limit;
@@ -396,7 +426,7 @@ impl Segment for QuotaSegment {
 
                 // 获取重置次数信息
                 let reset_info = if let Some(sub_id) = response.subscription_id {
-                    if let Some(sub_info) = self.fetch_subscription_info(&api_key, sub_id) {
+                    if let Some(sub_info) = self.fetch_subscription_info(&api_key, sub_id, &model) {
                         // 检查并执行自动重置（内部会进行所有必要的检查）
                         let _ = self.check_and_auto_reset(
                             &api_key,
@@ -404,9 +434,9 @@ impl Segment for QuotaSegment {
                             sub_info.reset_times,
                             auto_reset_enabled,
                         );
-                        
+
                         self.format_reset_info(
-                            sub_info.reset_times, 
+                            sub_info.reset_times,
                             sub_info.auto_reset_when_zero,
                             auto_reset_enabled
                         )
